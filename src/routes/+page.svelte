@@ -4,6 +4,7 @@
 	import { writable } from 'svelte/store';
 
 	const QTY_CHOICES = 4;
+	const DEBUG_MODE = false; // todo: move to global writable store for settings menu
 
 	let directories = writable<string[]>([]);
 	let gameLength = 0;
@@ -61,19 +62,17 @@
 			<div class="message">Points: {points}/{gameLength}</div>
 			<div class="message">Misses: {misses}/3</div>
 		</div>
-		<div class="game-container">
-			<img class="photo" src={photoUrl} alt="Prompt Image" aria-hidden="true" />
-			<div class="choices">
-				{#each currentChoices as choice (choice)}
-					<button
-						class="tile"
-						on:click={() => selectDirectory(choice)}
-						class:selected={choice === currentPrompt}
-					>
-						{formatChoice(choice)}
-					</button>
-				{/each}
-			</div>
+		<img class="photo" src={photoUrl} alt="Prompt Image" aria-hidden="true" />
+		<div class="choices">
+			{#each currentChoices as choice (choice)}
+				<button
+					class="tile"
+					on:click={() => selectDirectory(choice)}
+					class:selected={DEBUG_MODE && choice === currentPrompt}
+				>
+					{formatChoice(choice)}
+				</button>
+			{/each}
 		</div>
 	{:else if gameover}
 		<h2>Game Over</h2>
@@ -94,26 +93,17 @@
 		height: 100vh;
 
 		display: grid;
-		grid-template-rows: 1fr 29fr;
-	}
-
-	.game-container {
-		position: relative;
-		display: flex;
+		grid-template-rows: 2fr 35fr 15fr;
 	}
 
 	.photo {
 		max-width: 100%;
+		height: 100%;
 		object-fit: cover;
-		height: 70%;
 		margin: 0 auto;
 	}
 
 	.choices {
-		height: 30%;
-		position: absolute;
-		bottom: 0;
-		left: 0;
 		width: 100%;
 		background-color: rgba(0, 0, 0, 0.5);
 		display: flex;
