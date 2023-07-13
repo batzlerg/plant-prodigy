@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatChoice, randomizeArray } from '$lib/utils';
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 
@@ -40,10 +41,6 @@
 		await load();
 	}
 
-	function randomizeArray(arr: any[]): any[] {
-		return [...arr].sort(() => 0.5 - Math.random());
-	}
-
 	function getChoices(list: string[], count: number = QTY_CHOICES): string[] {
 		const choices = new Set([currentPrompt]);
 		const shuffledSet = randomizeArray(list).sort(() => 0.5 - Math.random());
@@ -64,18 +61,16 @@
 			<div class="message">Points: {points}/{gameLength}</div>
 			<div class="message">Misses: {misses}/3</div>
 		</div>
-		<div class="photo-container">
+		<div class="game-container">
 			<img class="photo" src={photoUrl} alt="Prompt Image" aria-hidden="true" />
-		</div>
-		<div class="button-overlay">
-			<div class="grid">
+			<div class="choices">
 				{#each currentChoices as choice (choice)}
 					<button
 						class="tile"
 						on:click={() => selectDirectory(choice)}
 						class:selected={choice === currentPrompt}
 					>
-						{choice}
+						{formatChoice(choice)}
 					</button>
 				{/each}
 			</div>
@@ -99,19 +94,23 @@
 		height: 100vh;
 
 		display: grid;
-		grid-template-rows: 1fr 9fr 6fr;
+		grid-template-rows: 1fr 29fr;
 	}
 
-	.photo-container {
+	.game-container {
 		position: relative;
+		display: flex;
 	}
 
 	.photo {
-		max-height: 100%;
-		width: 100%;
+		max-width: 100%;
+		object-fit: cover;
+		height: 70%;
+		margin: 0 auto;
 	}
 
-	.button-overlay {
+	.choices {
+		height: 30%;
 		position: absolute;
 		bottom: 0;
 		left: 0;
@@ -122,9 +121,6 @@
 		align-items: center;
 		padding: 10px;
 		box-sizing: border-box;
-	}
-
-	.grid {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: 10px;
@@ -135,22 +131,21 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 160px;
+		height: 100%;
 		background-color: rgba(230, 230, 230, 0.9);
 		border: none;
 		font-size: 2rem;
 		cursor: pointer;
 	}
-
 	.tile.selected {
 		background-color: #aaa;
 	}
 
 	.header {
 		box-sizing: border-box;
-		margin: 10px;
 		display: flex;
 		justify-content: flex-end;
+		align-items: center;
 	}
 
 	.message {
