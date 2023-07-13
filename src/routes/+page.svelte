@@ -1,29 +1,38 @@
 <script lang="ts">
 	import { formatChoice, randomizeArray } from '$lib/utils';
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
 
 	const QTY_CHOICES = 4;
 	const DEBUG_MODE = false; // todo: move to global writable store for settings menu
 
-	let directories = writable<string[]>([]);
+	let directories: string[] = [];
 	let gameLength = 0;
 	let currentPrompt = '';
 	let currentChoices: string[] = [];
 	let photoUrl = '';
+
+	let thisRoundData: any; // todo
+	let nextRoundData: any; // todo
 	let points = 0;
 	let misses = 0;
 	let gameover = false;
 	let win = false;
 
 	async function load() {
-		const response = await fetch('/api/gameData');
-		const json = await response.json();
+		if (!thisRoundData) {
+			const response1 = await fetch('/api/gameData');
+			thisRoundData = await response1.json();
+		} else {
+			thisRoundData = nextRoundData;
+		}
 
-		directories.set(json.directories);
-		gameLength = json.gameLength;
-		currentPrompt = json.currentPrompt;
-		photoUrl = json.photoUrl;
+		directories = thisRoundData.directories;
+		gameLength = thisRoundData.gameLength;
+		currentPrompt = thisRoundData.currentPrompt;
+		photoUrl = thisRoundData.photoUrl;
+
+		const response2 = await fetch('/api/gameData');
+		nextRoundData = await response2.json();
 	}
 
 	async function selectDirectory(directory: string) {
@@ -51,7 +60,7 @@
 		return randomizeArray(Array.from(choices));
 	}
 
-	$: currentChoices = getChoices($directories);
+	$: currentChoices = getChoices(directories);
 
 	onMount(load);
 </script>
@@ -62,7 +71,11 @@
 			<div class="message">Points: {points}/{gameLength}</div>
 			<div class="message">Misses: {misses}/3</div>
 		</div>
-		<img class="photo" src={photoUrl} alt="Prompt Image" aria-hidden="true" />
+		<div class="photo-container">
+			<div class="photo-zoom">
+				<img class="photo" src={photoUrl} alt="Prompt Image" aria-hidden="true" />
+			</div>
+		</div>
 		<div class="choices">
 			{#each currentChoices as choice (choice)}
 				<button
@@ -87,34 +100,53 @@
 
 <style>
 	.container {
-		max-width: 800px;
 		margin: 0 auto;
-		position: relative;
-		height: 100vh;
-
-		display: grid;
-		grid-template-rows: 2fr 35fr 15fr;
-	}
-
-	.photo {
-		max-width: 100%;
-		height: 100%;
-		object-fit: cover;
-		margin: 0 auto;
-	}
-
-	.choices {
 		width: 100%;
-		background-color: rgba(0, 0, 0, 0.5);
+		max-width: 800px;
+		height: 100vh;
+		box-sizing: border-box;
+		display: grid;
+		grid-template-rows: 2fr 98fr 50fr;
+		overflow-x: auto;
+	}
+
+	@media (max-width: 800px) {
+		.container {
+			width: 100%;
+		}
+	}
+
+	.photo-container {
+		grid-row: 2;
+		grid-column: 1 / -1;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 10px;
-		box-sizing: border-box;
+		overflow: hidden;
+	}
+
+	.photo-zoom {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.photo {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		object-position: center center;
+	}
+
+	.choices {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: 10px;
-		width: 100%;
+		padding: 10px;
+		justify-items: center;
+		align-items: center;
 	}
 
 	.tile {
@@ -122,13 +154,15 @@
 		justify-content: center;
 		align-items: center;
 		height: 100%;
+		width: 100%;
 		background-color: rgba(230, 230, 230, 0.9);
 		border: none;
 		font-size: 2rem;
 		cursor: pointer;
 	}
-	.tile.selected {
-		background-color: #aaa;
+
+	.tile:hover {
+		background-color: rgba(0, 0, 0, 0.2);
 	}
 
 	.header {
