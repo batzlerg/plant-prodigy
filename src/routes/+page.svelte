@@ -10,6 +10,7 @@
 	let currentPrompt = '';
 	let currentChoices: string[] = [];
 	let photoUrl = '';
+	let flash = false;
 
 	let thisRoundData: any; // todo
 	let nextRoundData: any; // todo
@@ -17,6 +18,8 @@
 	let misses = 0;
 	let gameover = false;
 	let win = false;
+
+	let guess: string;
 
 	async function load() {
 		if (!thisRoundData) {
@@ -35,9 +38,9 @@
 		nextRoundData = await response2.json();
 	}
 
-	async function selectDirectory(directory: string) {
-		const isGuessCorrect = directory === currentPrompt;
-
+	async function handleChoiceClick(directory: string) {
+		guess = directory;
+		const isGuessCorrect = guess === currentPrompt;
 		if (isGuessCorrect) {
 			points++;
 			if (points === gameLength) {
@@ -49,6 +52,11 @@
 			misses++;
 			if (misses >= 3) {
 				gameover = true;
+			} else {
+				flash = true;
+				setTimeout(() => {
+					flash = false;
+				}, 1000); // Reset the flashing animation after 1 second
 			}
 		}
 	}
@@ -67,6 +75,11 @@
 	onMount(load);
 </script>
 
+<svelte:head>
+	{#if !!nextRoundData}
+		<link rel="preload" href={nextRoundData.photoUrl} as="image" />
+	{/if}
+</svelte:head>
 <div class="container">
 	{#if !gameover && !win}
 		<div class="container--header">
@@ -81,8 +94,8 @@
 		<div class="container--choices">
 			{#each currentChoices as choice (choice)}
 				<button
-					class="tile"
-					on:click={() => selectDirectory(choice)}
+					class="tile {flash && guess === choice && !win ? 'flash' : ''}"
+					on:click={() => handleChoiceClick(choice)}
 					class:selected={DEBUG_MODE && choice === currentPrompt}
 				>
 					{formatChoice(choice)}
@@ -163,6 +176,19 @@
 		padding: 1rem;
 	}
 
+	@keyframes flashAnimation {
+		0% {
+			background-color: #ff0000; /* Starting color - red */
+		}
+		100% {
+			background-color: rgba(230, 230, 230, 0.9); /* Default color */
+		}
+	}
+
+	.tile.flash {
+		animation: flashAnimation 1s;
+	}
+
 	@media (min-width: 800px) {
 		.container {
 			max-width: 800px;
@@ -172,8 +198,10 @@
 		}
 	}
 
-	.tile:hover {
-		background-color: rgba(0, 0, 0, 0.2);
+	@media (hover: hover) {
+		.tile:hover {
+			background-color: rgba(0, 0, 0, 0.2);
+		}
 	}
 
 	.message {
