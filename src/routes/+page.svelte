@@ -36,19 +36,21 @@
 	}
 
 	async function selectDirectory(directory: string) {
-		if (directory === currentPrompt) {
+		const isGuessCorrect = directory === currentPrompt;
+
+		if (isGuessCorrect) {
 			points++;
+			if (points === gameLength) {
+				win = true;
+			} else {
+				await load();
+			}
 		} else {
 			misses++;
+			if (misses >= 3) {
+				gameover = true;
+			}
 		}
-
-		if (misses >= 3) {
-			gameover = true;
-		} else if (points === gameLength) {
-			win = true;
-		}
-
-		await load();
 	}
 
 	function getChoices(list: string[], count: number = QTY_CHOICES): string[] {
@@ -67,16 +69,16 @@
 
 <div class="container">
 	{#if !gameover && !win}
-		<div class="header">
+		<div class="container--header">
 			<div class="message">Points: {points}/{gameLength}</div>
 			<div class="message">Misses: {misses}/3</div>
 		</div>
-		<div class="photo-container">
+		<div class="container--photo">
 			<div class="photo-zoom">
 				<img class="photo" src={photoUrl} alt="Prompt Image" aria-hidden="true" />
 			</div>
 		</div>
-		<div class="choices">
+		<div class="container--choices">
 			{#each currentChoices as choice (choice)}
 				<button
 					class="tile"
@@ -101,32 +103,30 @@
 <style>
 	.container {
 		margin: 0 auto;
-		width: 100%;
-		max-width: 800px;
 		height: 100vh;
 		box-sizing: border-box;
 		display: grid;
 		grid-template-rows: 2fr 98fr 50fr;
-		overflow-x: auto;
 	}
 
-	@media (max-width: 800px) {
-		.container {
-			width: 100%;
-		}
+	.container--header {
+		box-sizing: border-box;
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
 	}
 
-	.photo-container {
+	.container--photo {
 		grid-row: 2;
 		grid-column: 1 / -1;
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		overflow: hidden;
+		padding: 10px;
 	}
 
 	.photo-zoom {
-		width: 100%;
 		height: 100%;
 		display: flex;
 		align-items: center;
@@ -135,14 +135,15 @@
 
 	.photo {
 		width: 100%;
-		height: 100%;
+		height: auto;
 		object-fit: contain;
 		object-position: center center;
 	}
 
-	.choices {
+	.container--choices {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
+		grid-template-rows: repeat(2, 1fr);
 		gap: 10px;
 		padding: 10px;
 		justify-items: center;
@@ -157,19 +158,22 @@
 		width: 100%;
 		background-color: rgba(230, 230, 230, 0.9);
 		border: none;
-		font-size: 2rem;
+		font-size: 1.2rem;
 		cursor: pointer;
+		padding: 1rem;
+	}
+
+	@media (min-width: 800px) {
+		.container {
+			max-width: 800px;
+		}
+		.tile {
+			font-size: 2rem;
+		}
 	}
 
 	.tile:hover {
 		background-color: rgba(0, 0, 0, 0.2);
-	}
-
-	.header {
-		box-sizing: border-box;
-		display: flex;
-		justify-content: flex-end;
-		align-items: center;
 	}
 
 	.message {
