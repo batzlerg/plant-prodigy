@@ -117,6 +117,9 @@
 	.container {
 		margin: 0 auto;
 		height: 100vh;
+		max-height: -moz-available;
+		max-height: -webkit-fill-available;
+		max-height: fill-available;
 		box-sizing: border-box;
 		display: grid;
 		grid-template-rows: 2fr 98fr 50fr;
