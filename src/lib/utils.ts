@@ -1,9 +1,15 @@
 export function formatChoice(filename: string): string {
-  const words = filename.split('+').map(word => capitalize(word));
-  return words.join(' / ');
+  // Split the string by '+', ' ', and '.'
+  const words = filename.trim().split(/[+ .]/);
+
+  // Capitalize the first letter of each word
+  return words
+    .map((word) => capitalize(word))
+    .join(' / ');
 }
 
-const capitalize = (word: string) => {
+// exported for testing
+export const capitalize = (word: string) => {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
