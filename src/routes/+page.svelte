@@ -2,37 +2,38 @@
 	import { formatChoice, randomizeArray } from '$lib/utils';
 	import { onMount } from 'svelte';
 
+	interface GameData {
+		directories: string[];
+		gameLength: number;
+		currentPrompt: string;
+		currentChoices: string[];
+		photoUrl: string;
+	}
+
 	const QTY_CHOICES = 4;
 	const DEBUG_MODE = false; // todo: move to global writable store for settings menu
 
-	let directories: string[] = [];
-	let gameLength = 0;
-	let currentPrompt = '';
 	let currentChoices: string[] = [];
-	let photoUrl = '';
 	let flash = false;
 
-	let thisRoundData: any; // todo
-	let nextRoundData: any; // todo
+	let currentRoundData: GameData; // todo
+	let nextRoundData: GameData; // todo
 	let points = 0;
 	let misses = 0;
-	let gameover = false;
-	let win = false;
+	let playerLost = false;
+	let playerWon = false;
 
 	let guess: string;
 
 	async function load() {
-		if (!thisRoundData) {
+		if (!currentRoundData) {
 			const response1 = await fetch('/api/gameData');
-			thisRoundData = await response1.json();
+			currentRoundData = await response1.json();
 		} else {
-			thisRoundData = nextRoundData;
+			currentRoundData = nextRoundData;
 		}
 
-		directories = thisRoundData.directories;
-		gameLength = thisRoundData.gameLength;
-		currentPrompt = thisRoundData.currentPrompt;
-		photoUrl = thisRoundData.photoUrl;
+		currentChoices = getChoices(currentRoundData.directories);
 
 		const response2 = await fetch('/api/gameData');
 		nextRoundData = await response2.json();
@@ -40,18 +41,18 @@
 
 	async function handleChoiceClick(directory: string) {
 		guess = directory;
-		const isGuessCorrect = guess === currentPrompt;
+		const isGuessCorrect = guess === currentRoundData.currentPrompt;
 		if (isGuessCorrect) {
 			points++;
-			if (points === gameLength) {
-				win = true;
+			if (points === currentRoundData.gameLength) {
+				playerWon = true;
 			} else {
 				await load();
 			}
 		} else {
 			misses++;
 			if (misses >= 3) {
-				gameover = true;
+				playerLost = true;
 			} else {
 				flash = true;
 				setTimeout(() => {
@@ -62,15 +63,13 @@
 	}
 
 	function getChoices(list: string[], count: number = QTY_CHOICES): string[] {
-		const choices = new Set([currentPrompt]);
+		const choices = new Set([currentRoundData.currentPrompt]);
 		const shuffledSet = randomizeArray(list).sort(() => 0.5 - Math.random());
 		while (shuffledSet.length > 0 && choices.size < count) {
 			choices.add(shuffledSet.pop());
 		}
 		return randomizeArray(Array.from(choices));
 	}
-
-	$: currentChoices = getChoices(directories);
 
 	onMount(load);
 </script>
@@ -80,34 +79,37 @@
 		<link rel="preload" href={nextRoundData.photoUrl} as="image" />
 	{/if}
 </svelte:head>
-<div class="container">
-	{#if !gameover && !win}
+<div class="container" class:active-game={currentRoundData && !playerLost && !playerWon}>
+	{#if !currentRoundData}
+		<!-- todo -->
+		<div class="loading">Loading...</div>
+	{:else if !playerLost && !playerWon}
 		<div class="container--header">
-			<div class="message">Points: {points}/{gameLength}</div>
+			<div class="message">Points: {points}/{currentRoundData.gameLength}</div>
 			<div class="message">Misses: {misses}/3</div>
 		</div>
 		<div class="container--photo">
 			<div class="photo-zoom">
-				<img class="photo" src={photoUrl} alt="Prompt Image" aria-hidden="true" />
+				<img class="photo" src={currentRoundData.photoUrl} alt="Prompt Image" aria-hidden="true" />
 			</div>
 		</div>
 		<div class="container--choices">
 			{#each currentChoices as choice (choice)}
 				<button
-					class="tile {flash && guess === choice && !win ? 'flash' : ''}"
+					class="tile {flash && guess === choice && !playerWon ? 'flash' : ''}"
 					on:click={() => handleChoiceClick(choice)}
-					class:selected={DEBUG_MODE && choice === currentPrompt}
+					class:selected={DEBUG_MODE && choice === currentRoundData.currentPrompt}
 				>
 					{formatChoice(choice)}
 				</button>
 			{/each}
 		</div>
-	{:else if gameover}
+	{:else if playerLost}
 		<h2>Game Over</h2>
 		<p>Try again!</p>
 		<button on:click={() => window.location.reload()}>Restart</button>
-	{:else if win}
-		<h2>You Win!</h2>
+	{:else if playerWon}
+		<h2>You win!</h2>
 		<p>Congratulations!</p>
 		<button on:click={() => window.location.reload()}>Restart</button>
 	{/if}
@@ -122,6 +124,15 @@
 		max-height: fill-available;
 		box-sizing: border-box;
 		display: grid;
+		grid-template-rows: 1fr;
+	}
+
+	.loading {
+		margin: 0 auto;
+		align-self: center;
+	}
+
+	.container.active-game {
 		grid-template-rows: 2fr 98fr 50fr;
 	}
 
